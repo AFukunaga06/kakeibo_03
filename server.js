@@ -9,7 +9,19 @@ const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_PATH = './kakeibo.db';
+
+// Azure環境対応: 書き込み可能なディレクトリを使用
+const isAzure = process.env.WEBSITE_SITE_NAME || process.env.APPSETTING_WEBSITE_SITE_NAME;
+const DB_PATH = isAzure ? '/home/data/kakeibo.db' : './kakeibo.db';
+
+// Azureの場合、データディレクトリを作成
+if (isAzure) {
+    const fs = require('fs');
+    const dataDir = '/home/data';
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
+}
 
 // セキュリティミドルウェア
 app.use(helmet({
@@ -48,9 +60,9 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: isProduction, // 本番環境ではHTTPS必須
+        secure: isProduction && !isAzure, // AzureのHTTPS terminationに対応
         httpOnly: true,
-        sameSite: 'strict',
+        sameSite: isProduction ? 'lax' : 'strict', // Azure環境での互換性向上
         maxAge: 30 * 60 * 1000 // 30分でセッション期限切れ
     }
 }));
@@ -319,14 +331,24 @@ app.use((req, res) => {
 });
 
 // サーバー起動
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`🚀 セキュア家計簿サーバーが起動しました`);
-    console.log(`📍 URL: http://localhost:${PORT}`);
+    console.log(`📍 PORT: ${PORT}`);
     console.log(`🔐 デフォルトパスワード: r246`);
     console.log(`📂 データベース: ${DB_PATH}`);
+    console.log(`🌐 環境: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`☁️ Azure環境: ${isAzure ? 'Yes' : 'No'}`);
     
     // データベース初期化
     initializeDatabase();
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    server.close(() => {
+        console.log('Process terminated');
+    });
 });
 
 module.exports = app;

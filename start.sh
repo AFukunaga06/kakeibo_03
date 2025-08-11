@@ -37,11 +37,21 @@ if [ -f ".env" ]; then
     export $(grep -v '^#' .env | xargs)
 fi
 
-# データベースの確認
-if [ -f "kakeibo.db" ]; then
-    echo "📊 既存のデータベースを使用します"
+# Azure環境でのデータディレクトリ作成
+if [ -n "$WEBSITE_SITE_NAME" ] || [ -n "$APPSETTING_WEBSITE_SITE_NAME" ]; then
+    echo "☁️ Azure環境を検出しました"
+    echo "📁 データディレクトリを準備中..."
+    mkdir -p /home/data
+    DB_PATH="/home/data/kakeibo.db"
 else
-    echo "📊 新しいデータベースを作成します"
+    DB_PATH="./kakeibo.db"
+fi
+
+# データベースの確認
+if [ -f "$DB_PATH" ]; then
+    echo "📊 既存のデータベースを使用します: $DB_PATH"
+else
+    echo "📊 新しいデータベースを作成します: $DB_PATH"
 fi
 
 echo ""

@@ -1,0 +1,32 @@
+# Azure App Service configuration
+name: kakeibo-secure
+type: nodejs:18
+variables:
+  env:
+    NODE_ENV: production
+  app:
+    SESSION_SECRET: "${SESSION_SECRET}"
+build:
+  flavor: none
+dependencies:
+  nodejs:
+    "18": {}
+web:
+  commands:
+    start: "node server.js"
+  locations:
+    "/":
+      root: "public"
+      allow: false
+      rules:
+        '\.(css|js|png|jpg|jpeg|gif|ico|svg)$':
+          allow: true
+    "/api":
+      root: "/"
+      allow: false
+      passthru: true
+disk: 2048
+mounts:
+  "/home/data":
+    source: local
+    source_path: data
