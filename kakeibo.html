@@ -522,9 +522,17 @@
         
         const expenseManager = new ExpenseManager();
         
+        // ローカルタイムゾーンでYYYY-MM-DD形式の文字列を作成
+        function formatDateToLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
         // 初期化
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = formatDateToLocal(new Date());
             updateModeUI();
             renderCalendar();
             updateSummary();
@@ -609,7 +617,7 @@
         function clearForm() {
             editingExpenseId = null;
             document.getElementById('expenseForm').reset();
-            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = formatDateToLocal(new Date());
             clearErrors();
             document.getElementById('submitBtn').textContent = '保存';
         }
@@ -755,8 +763,9 @@
         function renderCalendarCell(date, isOtherMonth) {
             const calendar = document.getElementById('calendar');
             const cell = document.createElement('div');
-            const dateStr = date.toISOString().split('T')[0];
-            const today = new Date().toISOString().split('T')[0];
+            // ローカルタイムゾーンで日付文字列を作成
+            const dateStr = formatDateToLocal(date);
+            const today = formatDateToLocal(new Date());
             const selectedDate = document.getElementById('date').value;
             
             cell.className = 'calendar-cell';
@@ -831,8 +840,10 @@
             const modalTitle = document.getElementById('modalTitle');
             const modalContent = document.getElementById('modalContent');
             
-            const date = new Date(dateStr + 'T00:00:00');
-            modalTitle.textContent = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日の明細`;
+            // ローカルタイムゾーンで日付を解析
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            modalTitle.textContent = `${year}年${month}月${day}日の明細`;
             
             const expenses = expenseManager.getExpensesByDate(dateStr);
             
