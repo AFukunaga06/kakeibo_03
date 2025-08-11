@@ -11,15 +11,23 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Azure環境対応: 書き込み可能なディレクトリを使用
-const isAzure = process.env.WEBSITE_SITE_NAME || process.env.APPSETTING_WEBSITE_SITE_NAME;
+const isAzure = !!(process.env.WEBSITE_SITE_NAME || process.env.APPSETTING_WEBSITE_SITE_NAME || process.env.WEBSITE_INSTANCE_ID);
 const DB_PATH = isAzure ? '/home/data/kakeibo.db' : './kakeibo.db';
 
 // Azureの場合、データディレクトリを作成
 if (isAzure) {
     const fs = require('fs');
     const dataDir = '/home/data';
-    if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+    try {
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+            console.log('✅ データディレクトリを作成しました:', dataDir);
+        }
+    } catch (error) {
+        console.warn('⚠️ データディレクトリの作成に失敗:', error.message);
+        console.log('💡 ローカルディレクトリを使用します');
+        // フォールバック: ローカルディレクトリを使用
+        const DB_PATH_FALLBACK = './kakeibo.db';
     }
 }
 
@@ -72,57 +80,83 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // データベース初期化
 function initializeDatabase() {
-    const db = new sqlite3.Database(DB_PATH);
-    
-    db.serialize(() => {
-        // ユーザーテーブル（将来の拡張用）
-        db.run(`
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE,
-                password_hash TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
+    return new Promise((resolve, reject) => {
+        console.log('📊 データベース初期化開始:', DB_PATH);
         
-        // 支出テーブル
-        db.run(`
-            CREATE TABLE IF NOT EXISTS expenses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date TEXT NOT NULL,
-                category TEXT NOT NULL,
-                item_name TEXT,
-                store TEXT,
-                amount INTEGER NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-        
-        // デフォルトパスワード (r246) のハッシュを作成してチェック
-        const defaultPasswordHash = bcrypt.hashSync('r246', 10);
-        db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
+        const db = new sqlite3.Database(DB_PATH, (err) => {
             if (err) {
-                console.error('Database query error:', err);
-            } else if (row.count === 0) {
-                // デフォルトユーザーを作成
-                db.run(
-                    "INSERT INTO users (username, password_hash) VALUES (?, ?)",
-                    ['admin', defaultPasswordHash],
-                    (err) => {
-                        if (err) {
-                            console.error('Error creating default user:', err);
-                        } else {
-                            console.log('デフォルトユーザー作成完了: admin/r246');
+                console.error('❌ データベース接続エラー:', err);
+                reject(err);
+                return;
+            }
+            console.log('✅ データベース接続成功');
+        });
+        
+        db.serialize(() => {
+            // ユーザーテーブル（将来の拡張用）
+            db.run(`
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE,
+                    password_hash TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) console.error('❌ ユーザーテーブル作成エラー:', err);
+                else console.log('✅ ユーザーテーブル準備完了');
+            });
+            
+            // 支出テーブル
+            db.run(`
+                CREATE TABLE IF NOT EXISTS expenses (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    item_name TEXT,
+                    store TEXT,
+                    amount INTEGER NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) console.error('❌ 支出テーブル作成エラー:', err);
+                else console.log('✅ 支出テーブル準備完了');
+            });
+            
+            // デフォルトパスワード (r246) のハッシュを作成してチェック
+            const defaultPasswordHash = bcrypt.hashSync('r246', 10);
+            db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
+                if (err) {
+                    console.error('❌ Database query error:', err);
+                } else if (row.count === 0) {
+                    // デフォルトユーザーを作成
+                    db.run(
+                        "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+                        ['admin', defaultPasswordHash],
+                        (err) => {
+                            if (err) {
+                                console.error('❌ Error creating default user:', err);
+                            } else {
+                                console.log('✅ デフォルトユーザー作成完了: admin/r246');
+                            }
                         }
-                    }
-                );
+                    );
+                } else {
+                    console.log('✅ 既存ユーザーを確認しました');
+                }
+            });
+        });
+        
+        db.close((err) => {
+            if (err) {
+                console.error('❌ データベース接続終了エラー:', err);
+                reject(err);
+            } else {
+                console.log('✅ データベース初期化完了');
+                resolve();
             }
         });
     });
-    
-    db.close();
-    console.log('データベース初期化完了');
 }
 
 // 認証チェックミドルウェア
@@ -331,7 +365,7 @@ app.use((req, res) => {
 });
 
 // サーバー起動
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
     console.log(`🚀 セキュア家計簿サーバーが起動しました`);
     console.log(`📍 PORT: ${PORT}`);
     console.log(`🔐 デフォルトパスワード: r246`);
@@ -340,7 +374,13 @@ const server = app.listen(PORT, () => {
     console.log(`☁️ Azure環境: ${isAzure ? 'Yes' : 'No'}`);
     
     // データベース初期化
-    initializeDatabase();
+    try {
+        await initializeDatabase();
+        console.log('🎉 アプリケーション起動完了');
+    } catch (error) {
+        console.error('💥 データベース初期化失敗:', error);
+        console.log('⚠️ 一部機能が制限される可能性があります');
+    }
 });
 
 // Graceful shutdown

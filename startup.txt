@@ -1,0 +1,16 @@
+#!/bin/bash
+echo "🚀 Starting Kakeibo Azure App..."
+echo "Node version: $(node --version)"
+echo "NPM version: $(npm --version)"
+echo "Environment: $NODE_ENV"
+echo "Port: $PORT"
+
+# Install dependencies if node_modules doesn't exist
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing dependencies..."
+    npm install --production
+fi
+
+# Start the application
+echo "🎯 Starting server..."
+node server.js
