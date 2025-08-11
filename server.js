@@ -42,13 +42,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // セッション設定
+const isProduction = process.env.NODE_ENV === 'production';
 app.use(session({
     secret: process.env.SESSION_SECRET || 'kakeibo-secure-session-key-change-in-production',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // HTTPSでは true に変更
+        secure: isProduction, // 本番環境ではHTTPS必須
         httpOnly: true,
+        sameSite: 'strict',
         maxAge: 30 * 60 * 1000 // 30分でセッション期限切れ
     }
 }));
