@@ -123,11 +123,21 @@ function initializeDatabase() {
                 else console.log('✅ 支出テーブル準備完了');
             });
             
-            // デフォルトパスワード (r246) のハッシュを作成してチェック
-            const defaultPasswordHash = bcrypt.hashSync('r246', 10);
+            // デフォルトパスワードのハッシュを作成してチェック
+            const defaultPassword = process.env.DEFAULT_PASSWORD || 'r246';
+            const defaultPasswordHash = bcrypt.hashSync(defaultPassword, 10);
             db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
                 if (err) {
                     console.error('❌ Database query error:', err);
+                    db.close((closeErr) => {
+                        if (closeErr) {
+                            console.error('❌ データベース接続終了エラー:', closeErr);
+                            reject(closeErr);
+                        } else {
+                            console.log('✅ データベース初期化完了');
+                            reject(err);
+                        }
+                    });
                 } else if (row.count === 0) {
                     // デフォルトユーザーを作成
                     db.run(
@@ -137,24 +147,32 @@ function initializeDatabase() {
                             if (err) {
                                 console.error('❌ Error creating default user:', err);
                             } else {
-                                console.log('✅ デフォルトユーザー作成完了: admin/r246');
+                                console.log('✅ デフォルトユーザー作成完了: admin');
                             }
+                            db.close((closeErr) => {
+                                if (closeErr) {
+                                    console.error('❌ データベース接続終了エラー:', closeErr);
+                                    reject(closeErr);
+                                } else {
+                                    console.log('✅ データベース初期化完了');
+                                    resolve();
+                                }
+                            });
                         }
                     );
                 } else {
                     console.log('✅ 既存ユーザーを確認しました');
+                    db.close((closeErr) => {
+                        if (closeErr) {
+                            console.error('❌ データベース接続終了エラー:', closeErr);
+                            reject(closeErr);
+                        } else {
+                            console.log('✅ データベース初期化完了');
+                            resolve();
+                        }
+                    });
                 }
             });
-        });
-        
-        db.close((err) => {
-            if (err) {
-                console.error('❌ データベース接続終了エラー:', err);
-                reject(err);
-            } else {
-                console.log('✅ データベース初期化完了');
-                resolve();
-            }
         });
     });
 }
@@ -368,7 +386,7 @@ app.use((req, res) => {
 const server = app.listen(PORT, async () => {
     console.log(`🚀 セキュア家計簿サーバーが起動しました`);
     console.log(`📍 PORT: ${PORT}`);
-    console.log(`🔐 デフォルトパスワード: r246`);
+    console.log(`🔐 デフォルトパスワード: ${process.env.DEFAULT_PASSWORD || 'r246'}`);
     console.log(`📂 データベース: ${DB_PATH}`);
     console.log(`🌐 環境: ${process.env.NODE_ENV || 'development'}`);
     console.log(`☁️ Azure環境: ${isAzure ? 'Yes' : 'No'}`);
