@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>セキュア家計簿アプリ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .mode-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        
+        .auth-section {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .auth-input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-right: 10px;
+            width: 200px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .main-content {
+            padding: 20px;
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 10px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-control {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        
+        .form-control:read-only {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .alert {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .calendar-section {
+            margin-bottom: 30px;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .calendar-nav {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        .calendar-nav:hover {
+            background: #e9ecef;
+        }
+        
+        .calendar-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .calendar-header-cell {
+            background: #6c757d;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .calendar-cell {
+            background: white;
+            min-height: 100px;
+            padding: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        .calendar-cell:hover {
+            background: #f8f9fa;
+        }
+        
+        .calendar-cell.today {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+        
+        .calendar-cell.selected {
+            background: #fff3cd;
+            border-color: #ffc107;
+            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+        }
+        
+        .calendar-cell.other-month {
+            background: #f8f9fa;
+            color: #999;
+        }
+        
+        .calendar-date {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .calendar-items {
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        
+        .calendar-total {
+            font-weight: 600;
+            color: #007bff;
+            margin-top: 3px;
+        }
+        
+        .summary-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .summary-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .summary-amount {
+            font-size: 24px;
+            font-weight: 600;
+            color: #007bff;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 50px auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 10px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .expense-item:last-child {
+            border-bottom: none;
+        }
+        
+        .expense-details {
+            flex: 1;
+        }
+        
+        .expense-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        
+        .expense-store {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .expense-amount {
+            font-weight: 600;
+            color: #007bff;
+        }
+        
+        .category-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .security-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .calendar-cell {
+                min-height: 80px;
+                font-size: 12px;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                margin: 20px auto;
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 セキュア家計簿アプリ</h1>
+            <span class="mode-indicator" id="modeIndicator">読み込み中...</span>
+        </div>
+        
+        <div class="auth-section">
+            <div class="security-info">
+                <strong>🔒 セキュリティ強化版</strong><br>
+                サーバーサイド認証・パスワードハッシュ化・セッション管理により、データを安全に保護します。
+            </div>
+            <div id="authControls"></div>
+            <div id="alerts"></div>
+        </div>
+        
+        <div class="main-content" id="mainContent" style="display: none;">
+            <div class="form-section">
+                <h3>支出記録</h3>
+                <form id="expenseForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="date">日付</label>
+                            <input type="date" class="form-control" id="date" required readonly />
+                            <div class="error-message" id="dateError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="category">分類</label>
+                            <select class="form-control" id="category" required disabled>
+                                <option value="">選択してください</option>
+                                <option value="食費">食費</option>
+                                <option value="交通費">交通費</option>
+                                <option value="医療費">医療費</option>
+                                <option value="日用品">日用品</option>
+                                <option value="交際費">交際費</option>
+                                <option value="光熱費">光熱費</option>
+                                <option value="通信費">通信費</option>
+                                <option value="住居">住居</option>
+                                <option value="教育">教育</option>
+                                <option value="娯楽">娯楽</option>
+                                <option value="その他">その他</option>
+                            </select>
+                            <div class="error-message" id="categoryError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemName">商品名/内容</label>
+                            <input type="text" class="form-control" id="itemName" readonly />
+                        </div>
+                        <div class="form-group">
+                            <label for="store">購入先</label>
+                            <input type="text" class="form-control" id="store" readonly />
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">金額（円）</label>
+                            <input type="number" class="form-control" id="amount" min="1" required readonly />
+                            <div class="error-message" id="amountError"></div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="submitBtn" disabled>保存</button>
+                    <button type="button" class="btn btn-primary" id="clearBtn" onclick="clearForm()" disabled>クリア</button>
+                </form>
+            </div>
+            
+            <div class="calendar-section">
+                <div class="calendar-header">
+                    <button class="calendar-nav" onclick="changeMonth(-1)">◀</button>
+                    <div class="calendar-title" id="calendarTitle"></div>
+                    <button class="calendar-nav" onclick="changeMonth(1)">▶</button>
+                </div>
+                <div class="calendar" id="calendar"></div>
+            </div>
+            
+            <div class="summary-section">
+                <h3>今月の集計</h3>
+                <div class="summary-grid" id="summaryGrid"></div>
+                <div class="category-summary" id="categorySummary"></div>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            データを読み込み中...
+        </div>
+    </div>
+    
+    <div id="dayModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">日付別明細</h3>
+                <span class="close" onclick="closeDayModal()">&times;</span>
+            </div>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let isAuthenticated = false;
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let editingExpenseId = null;
+        let expenses = [];
+        
+        // ユーティリティ関数
+        function showAlert(message, type = 'error') {
+            const alertsContainer = document.getElementById('alerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertsContainer.innerHTML = '';
+            alertsContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        function formatDateToLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // API呼び出し関数
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API呼び出しに失敗しました');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+        
+        // 認証関連
+        async function checkAuthStatus() {
+            try {
+                const data = await apiCall('/api/auth/status');
+                isAuthenticated = data.authenticated;
+                updateUI();
+                
+                if (isAuthenticated) {
+                    await loadExpenses();
+                }
+            } catch (error) {
+                console.error('認証状態確認エラー:', error);
+            }
+        }
+        
+        async function login() {
+            const password = document.getElementById('loginPassword').value;
+            if (!password) {
+                showAlert('パスワードを入力してください');
+                return;
+            }
+            
+            try {
+                const data = await apiCall('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ password })
+                });
+                
+                showAlert('ログインしました', 'success');
+                isAuthenticated = true;
+                updateUI();
+                await loadExpenses();
+            } catch (error) {
+                showAlert(error.message);
+            }
+        }
+        
+        async function logout() {
+            try {
+                await apiCall('/api/auth/logout', {
+                    method: 'POST'
+                });
+                
+                isAuthenticated = false;
+                expenses = [];
+                editingExpenseId = null;
+                updateUI();
+                showAlert('ログアウトしました', 'success');
+            } catch (error) {
+                showAlert(error.message);
+            }
+        }
+        
+        // UI更新
+        function updateUI() {
+            const modeIndicator = document.getElementById('modeIndicator');
+            const authControls = document.getElementById('authControls');
+            const mainContent = document.getElementById('mainContent');
+            const formElements = document.querySelectorAll('#expenseForm input, #expenseForm select');
+            const submitBtn = document.getElementById('submitBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            if (isAuthenticated) {
+                modeIndicator.textContent = '編集モード';
+                modeIndicator.style.background = 'rgba(40, 167, 69, 0.8)';
+                
+                authControls.innerHTML = `
+                    <p>ログイン済み - データの編集が可能です</p>
+                    <button class="btn btn-primary" onclick="logout()">ログアウト</button>
+                `;
+                
+                mainContent.style.display = 'block';
+                
+                formElements.forEach(element => {
+                    element.removeAttribute('readonly');
+                    element.removeAttribute('disabled');
+                });
+                
+                submitBtn.disabled = false;
+                clearBtn.disabled = false;
+                
+                renderCalendar();
+                updateSummary();
+            } else {
+                modeIndicator.textContent = '閲覧モード';
+                modeIndicator.style.background = 'rgba(255, 255, 255, 0.2)';
+                
+                authControls.innerHTML = `
+                    <input type="password" class="auth-input" id="loginPassword" placeholder="パスワードを入力" />
+                    <button class="btn btn-primary" onclick="login()">ログイン</button>
+                `;
+                
+                mainContent.style.display = 'block';
+                
+                formElements.forEach(element => {
+                    if (element.tagName === 'SELECT') {
+                        element.setAttribute('disabled', '');
+                    } else {
+                        element.setAttribute('readonly', '');
+                    }
+                });
+                
+                submitBtn.disabled = true;
+                clearBtn.disabled = true;
+                
+                renderCalendar();
+                updateSummary();
+            }
+            
+            // Enterキーでログイン
+            const loginInput = document.getElementById('loginPassword');
+            if (loginInput) {
+                loginInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        login();
+                    }
+                });
+            }
+        }
+        
+        // データ管理
+        async function loadExpenses() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                expenses = await apiCall('/api/expenses');
+                renderCalendar();
+                updateSummary();
+            } catch (error) {
+                if (error.message.includes('認証')) {
+                    isAuthenticated = false;
+                    updateUI();
+                }
+                showAlert('データの読み込みに失敗しました: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function getExpensesByDate(date) {
+            return expenses.filter(e => e.date === date);
+        }
+        
+        function getExpensesByMonth(year, month) {
+            const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+            return expenses.filter(e => e.date.startsWith(monthStr));
+        }
+        
+        // フォーム操作
+        function clearForm() {
+            editingExpenseId = null;
+            document.getElementById('expenseForm').reset();
+            document.getElementById('date').value = formatDateToLocal(new Date());
+            clearErrors();
+            document.getElementById('submitBtn').textContent = '保存';
+        }
+        
+        function clearErrors() {
+            document.querySelectorAll('.error-message').forEach(error => {
+                error.textContent = '';
+            });
+        }
+        
+        function validateForm() {
+            clearErrors();
+            let isValid = true;
+            
+            const date = document.getElementById('date').value;
+            const category = document.getElementById('category').value;
+            const amount = document.getElementById('amount').value;
+            
+            if (!date) {
+                document.getElementById('dateError').textContent = '日付は必須です';
+                isValid = false;
+            }
+            
+            if (!category) {
+                document.getElementById('categoryError').textContent = '分類を選択してください';
+                isValid = false;
+            }
+            
+            if (!amount || amount <= 0) {
+                document.getElementById('amountError').textContent = '金額は0より大きい値を入力してください';
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+        
+        async function saveExpense() {
+            if (!validateForm()) {
+                return;
+            }
+            
+            const expense = {
+                date: document.getElementById('date').value,
+                category: document.getElementById('category').value,
+                item_name: document.getElementById('itemName').value,
+                store: document.getElementById('store').value,
+                amount: parseInt(document.getElementById('amount').value)
+            };
+            
+            try {
+                let result;
+                if (editingExpenseId) {
+                    result = await apiCall(`/api/expenses/${editingExpenseId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(expense)
+                    });
+                    
+                    // ローカルデータを更新
+                    const index = expenses.findIndex(e => e.id === editingExpenseId);
+                    if (index !== -1) {
+                        expenses[index] = result;
+                    }
+                    showAlert('データを更新しました', 'success');
+                } else {
+                    result = await apiCall('/api/expenses', {
+                        method: 'POST',
+                        body: JSON.stringify(expense)
+                    });
+                    
+                    // ローカルデータに追加
+                    expenses.push(result);
+                    showAlert('データを保存しました', 'success');
+                }
+                
+                clearForm();
+                renderCalendar();
+                updateSummary();
+                closeDayModal();
+            } catch (error) {
+                showAlert('保存に失敗しました: ' + error.message);
+            }
+        }
+        
+        function editExpense(id) {
+            const expense = expenses.find(e => e.id === id);
+            if (expense && isAuthenticated) {
+                editingExpenseId = id;
+                document.getElementById('date').value = expense.date;
+                document.getElementById('category').value = expense.category;
+                document.getElementById('itemName').value = expense.item_name || '';
+                document.getElementById('store').value = expense.store || '';
+                document.getElementById('amount').value = expense.amount;
+                document.getElementById('submitBtn').textContent = '更新';
+                closeDayModal();
+            }
+        }
+        
+        async function deleteExpense(id) {
+            if (isAuthenticated && confirm('この記録を削除しますか？')) {
+                try {
+                    await apiCall(`/api/expenses/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    // ローカルデータから削除
+                    expenses = expenses.filter(e => e.id !== id);
+                    
+                    renderCalendar();
+                    updateSummary();
+                    closeDayModal();
+                    showAlert('データを削除しました', 'success');
+                } catch (error) {
+                    showAlert('削除に失敗しました: ' + error.message);
+                }
+            }
+        }
+        
+        // カレンダー操作
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+            updateSummary();
+        }
+        
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            const title = document.getElementById('calendarTitle');
+            
+            title.textContent = `${currentYear}年${currentMonth + 1}月`;
+            
+            // カレンダークリア
+            calendar.innerHTML = '';
+            
+            // 曜日ヘッダー
+            const dayHeaders = ['日', '月', '火', '水', '木', '金', '土'];
+            dayHeaders.forEach(day => {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-header-cell';
+                cell.textContent = day;
+                calendar.appendChild(cell);
+            });
+            
+            // 月の最初の日と最後の日
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const firstDayOfWeek = firstDay.getDay();
+            
+            // 前月の日付を埋める
+            for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+                const date = new Date(currentYear, currentMonth, -i);
+                renderCalendarCell(date, true);
+            }
+            
+            // 当月の日付
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                renderCalendarCell(date, false);
+            }
+            
+            // 次月の日付を埋める
+            const totalCells = 42;
+            const currentCells = firstDayOfWeek + lastDay.getDate();
+            for (let day = 1; currentCells + day - 1 < totalCells; day++) {
+                const date = new Date(currentYear, currentMonth + 1, day);
+                renderCalendarCell(date, true);
+            }
+        }
+        
+        function renderCalendarCell(date, isOtherMonth) {
+            const calendar = document.getElementById('calendar');
+            const cell = document.createElement('div');
+            const dateStr = formatDateToLocal(date);
+            const today = formatDateToLocal(new Date());
+            const selectedDate = document.getElementById('date').value;
+            
+            cell.className = 'calendar-cell';
+            if (isOtherMonth) {
+                cell.className += ' other-month';
+            }
+            if (dateStr === today) {
+                cell.className += ' today';
+            }
+            if (dateStr === selectedDate) {
+                cell.className += ' selected';
+            }
+            
+            cell.onclick = (e) => {
+                document.getElementById('date').value = dateStr;
+                renderCalendar();
+                
+                if (e.shiftKey) {
+                    return;
+                }
+                
+                openDayModal(dateStr);
+            };
+            
+            const dayExpenses = getExpensesByDate(dateStr);
+            const total = dayExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            
+            // 日付表示
+            const dateDiv = document.createElement('div');
+            dateDiv.className = 'calendar-date';
+            dateDiv.textContent = date.getDate();
+            cell.appendChild(dateDiv);
+            
+            // アイテム表示
+            if (dayExpenses.length > 0) {
+                const itemsDiv = document.createElement('div');
+                itemsDiv.className = 'calendar-items';
+                
+                const displayItems = dayExpenses.slice(0, 2);
+                displayItems.forEach(exp => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.textContent = exp.item_name || exp.category;
+                    itemsDiv.appendChild(itemDiv);
+                });
+                
+                if (dayExpenses.length > 2) {
+                    const moreDiv = document.createElement('div');
+                    moreDiv.textContent = `ほか${dayExpenses.length - 2}件`;
+                    itemsDiv.appendChild(moreDiv);
+                }
+                
+                cell.appendChild(itemsDiv);
+                
+                // 合計金額
+                const totalDiv = document.createElement('div');
+                totalDiv.className = 'calendar-total';
+                totalDiv.textContent = `¥${total.toLocaleString()}`;
+                cell.appendChild(totalDiv);
+            }
+            
+            calendar.appendChild(cell);
+        }
+        
+        // モーダル操作
+        function openDayModal(dateStr) {
+            const modal = document.getElementById('dayModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+            
+            const [year, month, day] = dateStr.split('-').map(Number);
+            modalTitle.textContent = `${year}年${month}月${day}日の明細`;
+            
+            const dayExpenses = getExpensesByDate(dateStr);
+            
+            if (dayExpenses.length === 0) {
+                modalContent.innerHTML = '<p>この日の記録はありません。</p>';
+            } else {
+                let html = '';
+                dayExpenses.forEach(expense => {
+                    html += `
+                        <div class="expense-item">
+                            <div class="expense-details">
+                                <div class="expense-name">${expense.item_name || expense.category}</div>
+                                <div class="expense-store">${expense.store || ''} - ${expense.category}</div>
+                            </div>
+                            <div class="expense-amount">¥${expense.amount.toLocaleString()}</div>
+                            ${isAuthenticated ? `
+                                <button class="btn btn-primary" style="margin-left: 10px;" onclick="editExpense(${expense.id})">編集</button>
+                                <button class="btn btn-primary" style="margin-left: 5px; background: #dc3545;" onclick="deleteExpense(${expense.id})">削除</button>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                const total = dayExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+                html += `<div style="margin-top: 15px; text-align: right; font-weight: 600; font-size: 16px;">合計: ¥${total.toLocaleString()}</div>`;
+                
+                modalContent.innerHTML = html;
+            }
+            
+            modal.style.display = 'block';
+        }
+        
+        function closeDayModal() {
+            document.getElementById('dayModal').style.display = 'none';
+        }
+        
+        // 集計表示
+        function updateSummary() {
+            const summaryGrid = document.getElementById('summaryGrid');
+            const categorySummary = document.getElementById('categorySummary');
+            
+            const monthlyExpenses = getExpensesByMonth(currentYear, currentMonth);
+            const total = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const count = monthlyExpenses.length;
+            const average = count > 0 ? Math.round(total / count) : 0;
+            
+            summaryGrid.innerHTML = `
+                <div class="summary-card">
+                    <div class="summary-title">今月の支出合計</div>
+                    <div class="summary-amount">¥${total.toLocaleString()}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-title">記録件数</div>
+                    <div class="summary-amount">${count}件</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-title">1件あたり平均</div>
+                    <div class="summary-amount">¥${average.toLocaleString()}</div>
+                </div>
+            `;
+            
+            // 分類別集計
+            const categoryTotals = {};
+            monthlyExpenses.forEach(exp => {
+                categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+            });
+            
+            let categoryHtml = '';
+            Object.entries(categoryTotals)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([category, amount]) => {
+                    categoryHtml += `
+                        <div class="category-item">
+                            <span>${category}</span>
+                            <span>¥${amount.toLocaleString()}</span>
+                        </div>
+                    `;
+                });
+            
+            categorySummary.innerHTML = categoryHtml;
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('date').value = formatDateToLocal(new Date());
+            
+            // 日付フィールドの変更監視
+            document.getElementById('date').addEventListener('change', function() {
+                const selectedDate = new Date(this.value);
+                if (!isNaN(selectedDate.getTime())) {
+                    currentYear = selectedDate.getFullYear();
+                    currentMonth = selectedDate.getMonth();
+                    renderCalendar();
+                    updateSummary();
+                }
+            });
+            
+            // フォーム送信処理
+            document.getElementById('expenseForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (isAuthenticated) {
+                    saveExpense();
+                }
+            });
+            
+            // キーボードショートカット
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && e.target.id !== 'loginPassword') {
+                    if (isAuthenticated && validateForm()) {
+                        saveExpense();
+                    }
+                }
+            });
+            
+            // 認証状態確認
+            checkAuthStatus();
+        });
+        
+        // モーダル外クリックで閉じる
+        window.onclick = function(event) {
+            const modal = document.getElementById('dayModal');
+            if (event.target === modal) {
+                closeDayModal();
+            }
+        }
+    </script>
+</body>
+</html>
