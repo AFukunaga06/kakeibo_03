@@ -202,6 +202,12 @@
             border-color: #2196f3;
         }
         
+        .calendar-cell.selected {
+            background: #fff3cd;
+            border-color: #ffc107;
+            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+        }
+        
         .calendar-cell.other-month {
             background: #f8f9fa;
             color: #999;
@@ -523,6 +529,18 @@
             renderCalendar();
             updateSummary();
             
+            // 日付フィールドの変更監視
+            document.getElementById('date').addEventListener('change', function() {
+                const selectedDate = new Date(this.value);
+                if (!isNaN(selectedDate.getTime())) {
+                    // 選択した日付の月年にカレンダーを移動
+                    currentYear = selectedDate.getFullYear();
+                    currentMonth = selectedDate.getMonth();
+                    renderCalendar();
+                    updateSummary();
+                }
+            });
+            
             // フォーム送信処理
             document.getElementById('expenseForm').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -739,6 +757,7 @@
             const cell = document.createElement('div');
             const dateStr = date.toISOString().split('T')[0];
             const today = new Date().toISOString().split('T')[0];
+            const selectedDate = document.getElementById('date').value;
             
             cell.className = 'calendar-cell';
             if (isOtherMonth) {
@@ -747,8 +766,25 @@
             if (dateStr === today) {
                 cell.className += ' today';
             }
+            if (dateStr === selectedDate) {
+                cell.className += ' selected';
+            }
             
-            cell.onclick = () => openDayModal(dateStr);
+            cell.onclick = (e) => {
+                // 日付フィールドに選択した日付を設定
+                document.getElementById('date').value = dateStr;
+                
+                // カレンダーを再描画して選択状態を反映
+                renderCalendar();
+                
+                // Shiftキーを押しながらクリックした場合はモーダルを開かずに日付設定のみ
+                if (e.shiftKey) {
+                    return;
+                }
+                
+                // 通常のクリックではモーダルを開く
+                openDayModal(dateStr);
+            };
             
             const expenses = expenseManager.getExpensesByDate(dateStr);
             const total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
